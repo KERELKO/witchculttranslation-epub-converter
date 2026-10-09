@@ -1,27 +1,24 @@
 import logging
 from pathlib import Path
 
-import bs4  # type: ignore[import-untyped]
 import click
-from ebooklib import epub  # type: ignore[import-untyped]
 
-from witchculttranslation.content_extractor import (
-    download_and_replace_images,
-    extract_arc,
-    get_image_links,
-    normalize_arc_html,
+from witchculttranslation.epub import EpubWriter, read_epub, write_epub
+from witchculttranslation.exceptions import ApplicationException, NotFound
+from witchculttranslation.interactors.download_chapter import (
+    DownloadChapter,
+    DownloadChapterDTO,
 )
-from witchculttranslation.epub_converter import EpubWriter
-from witchculttranslation.http_utils import parse_witchculttranslation_page
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+ROOT = Path(__file__).parent.parent.parent
 
 
-@click.command("download-rezero-arc")
+@click.command("download-rezero-chapter")
 @click.option(
     "--book",
     "book_path",
@@ -29,9 +26,9 @@ logger = logging.getLogger(__name__)
     help="Existing Epub book path, chapter will be added to it",
     type=Path,
 )
-@click.option("--url", help="URL of the `witchculttranslation` arc")
+@click.option("--url", help="URL of the `witchculttranslation` chapter")
 @click.option("--output", help="Path for the book output", default=None)
-def download_rezero_arc(
+def download_rezero_chapter(
     book_path: Path | None,
     url: str,
     output: Path | None,
@@ -39,43 +36,49 @@ def download_rezero_arc(
     if not url:
         logger.error(msg := "URL cannot be empty")
         raise click.BadOptionUsage("--url", msg)
-    logger.info("Download arc: url=%s, book_path=%s", url, book_path)
-
-    witchculttranslation_html_page = parse_witchculttranslation_page(url)
-
-    soup = bs4.BeautifulSoup(witchculttranslation_html_page, "html.parser")
-    arc = extract_arc(soup)
-
-    arc_html = bs4.BeautifulSoup(arc.arc_html, "html.parser")
-
-    image_links = get_image_links(arc_html)
-
-    normalize_arc_html(arc_html)
-    downloaded_images = download_and_replace_images(arc_html, image_links)
-
-    arc.arc_html = str(arc_html)
-    arc.images = downloaded_images
+    logger.info("Download chapter: url=%s, book_path=%s", url, book_path)
 
     title = "Re:Zero − Starting Life in Another World: Web novel"
 
     if book_path:
-        book = epub.read_epub(book_path)
+        book = read_epub(book_path)
+        title = str(book.title) or title
+        new_book: bool = False
     else:
-        cover_file_name = list(arc.images)[0]
+        book_path = output or ROOT / f"{title}.epub"
+        new_book = True
         book = EpubWriter.create_book(
             author="Tappei Nagatsuki and witchculttranslation team",
             title=title,
-            cover=(f"cover_{cover_file_name}", arc.images[cover_file_name]),
+        )
+        write_epub(book_path, book)
+
+    download_chapter = DownloadChapter()
+
+    try:
+        chapter = download_chapter(DownloadChapterDTO(url=url, book_path=book_path))
+    except NotFound as e:
+        raise click.BadOptionUsage(
+            "url", f"URL for the chapter is invalid: {e.message}"
+        )
+    except ApplicationException as e:
+        raise click.BadOptionUsage("url", e.message)
+
+    if new_book and chapter.images:
+        logger.info("Setting cover image for new EPUB book")
+        book = read_epub(book_path)
+        cover_file_name = list(chapter.images)[0]
+
+        EpubWriter(book).book.set_cover(
+            file_name=f"cover_{cover_file_name}",
+            content=chapter.images[cover_file_name],
+            create_page=False,
         )
 
-    epub_writer = EpubWriter(book)
-    epub_writer.add_arc(arc)
+        write_epub(book_path, book)
 
-    result_path = output or book_path or Path(__file__).parent / f"{title}.epub"
-    epub.write_epub(result_path, book)
-
-    logger.info("Saved result to %s", str(result_path))
+    logger.info("Saved result to %s", str(book_path))
 
 
 if __name__ == "__main__":
-    download_rezero_arc()
+    download_rezero_chapter()

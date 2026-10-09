@@ -4,20 +4,20 @@ import uuid
 
 import bs4  # type: ignore[import-untyped]
 
-from witchculttranslation.dto import Arc
+from witchculttranslation.dto import Chapter
 from witchculttranslation.exceptions import ApplicationException
 from witchculttranslation.http_utils import get_response
 
 logger = getLogger(__name__)
 
 
-def extract_arc(html: bs4.BeautifulSoup | bs4.Tag) -> Arc:
-    """Extracts `witchculttranslation` HTML page content and extracts content of Arc"""
+def extract_chapter(html: bs4.BeautifulSoup | bs4.Tag) -> Chapter:
+    """Extracts `witchculttranslation` HTML page content and extracts content of a chapter"""
 
     article = html.find("article")
 
     if not article:
-        msg = "Failed to find arc content for provided HTML"
+        msg = "Failed to find chapter content for provided HTML"
         logger.error(msg)
         raise ApplicationException(msg)
 
@@ -49,12 +49,12 @@ def extract_arc(html: bs4.BeautifulSoup | bs4.Tag) -> Arc:
         if ul_tag:
             translated_by = [li.get_text(strip=True) for li in ul_tag.find_all("li")]
 
-    return Arc(
+    return Chapter(
         title=title,
         authors=authors,
         posted_info=posted_info,
         translated_by=translated_by,
-        arc_html=str(article),
+        chapter_html=str(article),
     )
 
 
@@ -116,7 +116,7 @@ def download_and_replace_images(
     return images
 
 
-def normalize_arc_html(html: bs4.BeautifulSoup | bs4.Tag) -> None:
+def normalize_chapter_html(html: bs4.BeautifulSoup | bs4.Tag) -> None:
     for paragraph in html.find_all("p"):
         paragraph = cast(bs4.Tag, paragraph)
 

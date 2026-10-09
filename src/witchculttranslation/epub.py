@@ -1,10 +1,11 @@
 from logging import getLogger
 import mimetypes
+from pathlib import Path
 import uuid
 
 from ebooklib import epub  # type: ignore[import-untyped]
 
-from witchculttranslation.dto import Arc
+from witchculttranslation.dto import Chapter
 from witchculttranslation.exceptions import ApplicationException  # type: ignore[import-untyped]
 
 logger = getLogger(__name__)
@@ -17,6 +18,14 @@ h1 { font-size: 1.2em; text-align: center; margin-top: 5px; }
 p { text-indent: 1em; line-height: 1.3; margin-bottom: 5px; }
 """
 DEFAULT_STYLES_ID = "style_default"
+
+
+def read_epub(path: Path) -> epub.EpubBook:
+    return epub.read_epub(path)
+
+
+def write_epub(path: Path, book: epub.EpubBook) -> None:
+    epub.write_epub(path, book)
 
 
 class EpubWriter:
@@ -76,12 +85,14 @@ class EpubWriter:
 
         return book
 
-    def add_arc(self, arc: Arc) -> epub.EpubHtml:
-        current_arc = len(self.book.toc)
-        file_name = f"arc_{current_arc}.xhtml"
-        logger.info("Add new arc '%s', with file name '%s'", arc.title, file_name)
+    def add_chapter(self, chapter: Chapter) -> epub.EpubHtml:
+        current_chapter = len(self.book.toc)
+        file_name = f"chapter_{current_chapter}.xhtml"
+        logger.info(
+            "Add new chapter '%s', with file name '%s'", chapter.title, file_name
+        )
 
-        for internal_path, img_bytes in arc.images.items():
+        for internal_path, img_bytes in chapter.images.items():
             logger.info("Adding image '%s'", internal_path)
             mime_type, _ = mimetypes.guess_type(internal_path)
 
@@ -93,17 +104,17 @@ class EpubWriter:
             )
             self.book.add_item(img_item)
 
-        new_arc = epub.EpubHtml(
+        new_chapter = epub.EpubHtml(
             uid=file_name,
-            title=arc.title,
+            title=chapter.title,
             file_name=file_name,
             lang=self.book.language,
-            content=arc.arc_html,
+            content=chapter.chapter_html,
         )
-        new_arc.add_item(self.default_styles)
+        new_chapter.add_item(self.default_styles)
 
-        self.book.add_item(new_arc)
-        self.book.toc.append(new_arc)
-        self.book.spine.append(new_arc)
+        self.book.add_item(new_chapter)
+        self.book.toc.append(new_chapter)
+        self.book.spine.append(new_chapter)
 
-        return new_arc
+        return new_chapter

@@ -3,9 +3,9 @@ from logging import getLogger
 import mimetypes
 from typing import Any
 
-import requests  # type: ignore[import-untyped]
+import requests
 
-from witchculttranslation.exceptions import ApplicationException
+from witchculttranslation.exceptions import ApplicationException, NotFound
 
 logger = getLogger(__name__)
 
@@ -35,6 +35,9 @@ def get_response(url: str) -> Response:
 def parse_witchculttranslation_page(url: str) -> str:
     logger.info("Make request to %s", url)
     response = requests.get(url)
+
+    if response.status_code == 404:
+        raise NotFound(message="Chapter does not exist")
 
     if not response.ok:
         msg = f"Request to {url} failed with {response.status_code} status code"

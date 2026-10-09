@@ -26,4 +26,4 @@ dev = [
 ]
 
 [project.scripts]
-download-rezero-arc = "witchculttranslation.cli:download_rezero_arc"
+download-rezero-chapter = "witchculttranslation.cli:download_rezero_chapter"
