@@ -28,6 +28,18 @@ class EpubWriter:
             raise ApplicationException(msg)
 
         self.default_styles = default_styles
+        self._ensure_toc_uids(self.book.toc)
+
+    def _ensure_toc_uids(self, toc_items: list | tuple, prefix: str = "toc") -> None:
+        for index, toc_item in enumerate(toc_items):
+            if isinstance(toc_item, (list, tuple)):
+                self._ensure_toc_uids(toc_item, f"{prefix}-{index}")
+                continue
+
+            if getattr(toc_item, "uid", None):
+                continue
+
+            toc_item.uid = getattr(toc_item, "href", None) or f"{prefix}-{index}"
 
     @classmethod
     def create_book(
@@ -82,6 +94,7 @@ class EpubWriter:
             self.book.add_item(img_item)
 
         new_arc = epub.EpubHtml(
+            uid=file_name,
             title=arc.title,
             file_name=file_name,
             lang=self.book.language,

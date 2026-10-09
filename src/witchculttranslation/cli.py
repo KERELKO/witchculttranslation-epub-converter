@@ -53,8 +53,7 @@ def download_rezero_arc(
     title = "Re:Zero − Starting Life in Another World: Web novel"
 
     if book_path:
-        epub_reader = epub.EpubReader(book_path)
-        book = epub_reader.load()
+        book = epub.read_epub(book_path)
     else:
         cover_file_name = list(arc.images)[0]
         book = EpubWriter.create_book(
@@ -66,8 +65,8 @@ def download_rezero_arc(
     epub_writer = EpubWriter(book)
     epub_writer.add_arc(arc)
 
-    result_path = output or Path(__file__).parent / f"{title}.epub"
-    epub.EpubWriter(result_path, book=book).write()
+    result_path = output or book_path or Path(__file__).parent / f"{title}.epub"
+    epub.write_epub(result_path, book)
 
     logger.info("Saved result to %s", str(result_path))
 
