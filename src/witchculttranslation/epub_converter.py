@@ -60,7 +60,7 @@ class EpubWriter:
             uid=DEFAULT_STYLES_ID,
             file_name="style/default.css",
             media_type="text/css",
-            content=DEFAULT_EBOOK_STYLES
+            content=DEFAULT_EBOOK_STYLES,
         )
 
         book.add_item(styles)
@@ -69,7 +69,7 @@ class EpubWriter:
         book.add_item(epub.EpubNav())
 
         book.toc = []
-        book.spine = ['nav']
+        book.spine = ["nav"]
 
         if cover:
             book.set_cover(file_name=cover[0], content=cover[1], create_page=False)
@@ -78,7 +78,7 @@ class EpubWriter:
 
     def add_arc(self, arc: Arc) -> epub.EpubHtml:
         current_arc = len(self.book.toc)
-        file_name = f'arc_{current_arc}.xhtml'
+        file_name = f"arc_{current_arc}.xhtml"
         logger.info("Add new arc '%s', with file name '%s'", arc.title, file_name)
 
         for internal_path, img_bytes in arc.images.items():
@@ -89,7 +89,7 @@ class EpubWriter:
                 uid=internal_path,
                 file_name=internal_path,
                 media_type=mime_type or "image/jpeg",
-                content=img_bytes
+                content=img_bytes,
             )
             self.book.add_item(img_item)
 
@@ -98,7 +98,7 @@ class EpubWriter:
             title=arc.title,
             file_name=file_name,
             lang=self.book.language,
-            content=arc.arc_html
+            content=arc.arc_html,
         )
         new_arc.add_item(self.default_styles)
 

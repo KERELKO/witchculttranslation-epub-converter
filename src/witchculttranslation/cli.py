@@ -1,24 +1,30 @@
 import logging
 from pathlib import Path
 
-import bs4
+import bs4  # type: ignore[import-untyped]
 import click
 from ebooklib import epub  # type: ignore[import-untyped]
 
-from witchculttranslation.content_extractor import download_and_replace_images, extract_arc, get_image_links, normalize_arc_html
+from witchculttranslation.content_extractor import (
+    download_and_replace_images,
+    extract_arc,
+    get_image_links,
+    normalize_arc_html,
+)
 from witchculttranslation.epub_converter import EpubWriter
 from witchculttranslation.http_utils import parse_witchculttranslation_page
 
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
 
 @click.command("download-rezero-arc")
 @click.option(
-    "--book", "book_path",
+    "--book",
+    "book_path",
     default=None,
     help="Existing Epub book path, chapter will be added to it",
     type=Path,
@@ -42,7 +48,7 @@ def download_rezero_arc(
 
     arc_html = bs4.BeautifulSoup(arc.arc_html, "html.parser")
 
-    image_links = get_image_links(arc_html)    
+    image_links = get_image_links(arc_html)
 
     normalize_arc_html(arc_html)
     downloaded_images = download_and_replace_images(arc_html, image_links)
@@ -59,7 +65,7 @@ def download_rezero_arc(
         book = EpubWriter.create_book(
             author="Tappei Nagatsuki and witchculttranslation team",
             title=title,
-            cover=(f"cover_{cover_file_name}", arc.images[cover_file_name])
+            cover=(f"cover_{cover_file_name}", arc.images[cover_file_name]),
         )
 
     epub_writer = EpubWriter(book)
@@ -71,5 +77,5 @@ def download_rezero_arc(
     logger.info("Saved result to %s", str(result_path))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     download_rezero_arc()

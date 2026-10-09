@@ -2,7 +2,7 @@ from logging import getLogger
 from typing import cast
 import uuid
 
-import bs4
+import bs4  # type: ignore[import-untyped]
 
 from witchculttranslation.dto import Arc
 from witchculttranslation.exceptions import ApplicationException
@@ -14,43 +14,47 @@ logger = getLogger(__name__)
 def extract_arc(html: bs4.BeautifulSoup | bs4.Tag) -> Arc:
     """Extracts `witchculttranslation` HTML page content and extracts content of Arc"""
 
-    article = html.find('article')
+    article = html.find("article")
 
     if not article:
         msg = "Failed to find arc content for provided HTML"
         logger.error(msg)
         raise ApplicationException(msg)
 
-    title_tag = article.find('h1', class_='entry-title')
+    title_tag = article.find("h1", class_="entry-title")
     title = title_tag.get_text(strip=True) if title_tag else "Unknown Title"
 
     authors = []
-    post_by_tag = article.find('span', class_='post-by')
+    post_by_tag = article.find("span", class_="post-by")
     if post_by_tag:
-        authors = [a.get_text(strip=True) for a in post_by_tag.find_all('a', class_='url')]
+        authors = [
+            a.get_text(strip=True) for a in post_by_tag.find_all("a", class_="url")
+        ]
 
     posted_info = ""
-    poston_tag = article.find('span', class_='poston')
+    poston_tag = article.find("span", class_="poston")
     if poston_tag:
-        pub_time = poston_tag.find('time', class_='entry-date published')
+        pub_time = poston_tag.find("time", class_="entry-date published")
         if pub_time:
             posted_info = pub_time.get_text(strip=True)
         else:
             posted_info = poston_tag.get_text(strip=True)
 
     translated_by = []
-    t_by_tag = article.find(lambda tag: tag.name == "p" and "Translated By:" in tag.get_text())
+    t_by_tag = article.find(
+        lambda tag: tag.name == "p" and "Translated By:" in tag.get_text()
+    )
     if t_by_tag:
-        ul_tag = t_by_tag.find_next_sibling('ul')
+        ul_tag = t_by_tag.find_next_sibling("ul")
         if ul_tag:
-            translated_by = [li.get_text(strip=True) for li in ul_tag.find_all('li')]
+            translated_by = [li.get_text(strip=True) for li in ul_tag.find_all("li")]
 
     return Arc(
         title=title,
         authors=authors,
         posted_info=posted_info,
         translated_by=translated_by,
-        arc_html=str(article)
+        arc_html=str(article),
     )
 
 
@@ -60,10 +64,10 @@ def get_image_links(html: bs4.BeautifulSoup | bs4.Tag) -> list[str]:
     """
     image_links: list[str] = []
 
-    for img_tag in html.find_all('img'):
-        original_url = img_tag.get('src')
+    for img_tag in html.find_all("img"):
+        original_url = img_tag.get("src")
 
-        if not original_url or not (url_val := str(original_url)).startswith('http'):
+        if not original_url or not (url_val := str(original_url)).startswith("http"):
             continue
 
         image_links.append(url_val)
@@ -95,9 +99,17 @@ def download_and_replace_images(
         images[internal_filename] = response.content
 
         for img_tag in tags:
-            img_tag['src'] = internal_filename
+            img_tag["src"] = internal_filename
 
-            attrs_to_remove = ['srcset', 'sizes', 'loading', 'fetchpriority', 'decoding', 'class', 'style']
+            attrs_to_remove = [
+                "srcset",
+                "sizes",
+                "loading",
+                "fetchpriority",
+                "decoding",
+                "class",
+                "style",
+            ]
             for attr in attrs_to_remove:
                 if img_tag.has_attr(attr):
                     del img_tag[attr]
@@ -112,13 +124,18 @@ def normalize_arc_html(html: bs4.BeautifulSoup | bs4.Tag) -> None:
             continue
 
         paragraph_text = paragraph.get_text()
-        compact_text = ''.join(char for char in paragraph_text if char not in WHITESPACE_CHARS)
+        compact_text = "".join(
+            char for char in paragraph_text if char not in WHITESPACE_CHARS
+        )
 
         if not compact_text:
             paragraph.decompose()
             continue
 
-        if any(unsupported_string in compact_text for unsupported_string in UNSUPPORTED_STRINGS):
+        if any(
+            unsupported_string in compact_text
+            for unsupported_string in UNSUPPORTED_STRINGS
+        ):
             paragraph.decompose()
             continue
 

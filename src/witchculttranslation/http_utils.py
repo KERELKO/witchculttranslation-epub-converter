@@ -3,7 +3,7 @@ from logging import getLogger
 import mimetypes
 from typing import Any
 
-import requests
+import requests  # type: ignore[import-untyped]
 
 from witchculttranslation.exceptions import ApplicationException
 
@@ -17,10 +17,10 @@ class Response:
 
     @property
     def content_extension(self) -> str:
-        ext = mimetypes.guess_extension(self.content_type) or '.jpg'
+        ext = mimetypes.guess_extension(self.content_type) or ".jpg"
 
-        if ext == '.jpe':
-            ext = '.jpg'
+        if ext == ".jpe":
+            ext = ".jpg"
         return ext
 
 
@@ -28,8 +28,7 @@ def get_response(url: str) -> Response:
     response = requests.get(url, timeout=15)
     response.raise_for_status()
     return Response(
-        content=response.content,
-        content_type=response.headers.get("Content-Type", '')
+        content=response.content, content_type=response.headers.get("Content-Type", "")
     )
 
 
