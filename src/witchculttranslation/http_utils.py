@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from logging import getLogger
 import mimetypes
-from typing import Any
 
 import requests
 
@@ -10,9 +9,9 @@ from witchculttranslation.exceptions import ApplicationException, NotFound
 logger = getLogger(__name__)
 
 
-@dataclass
+@dataclass(slots=True)
 class Response:
-    content: Any
+    content: bytes
     content_type: str
 
     @property
@@ -23,25 +22,33 @@ class Response:
             ext = ".jpg"
         return ext
 
+    @property
+    def text(self) -> str:
+        media_type = self.content_type.split(";", 1)[0].strip().lower()
+        if not (
+            media_type.startswith("text/")
+            or media_type
+            in {"application/json", "application/xml", "application/xhtml+xml"}
+        ):
+            raise ApplicationException(
+                "Response content type is not textual: %s" % self.content_type
+            )
+
+        return self.content.decode("utf-8")
+
 
 def get_response(url: str) -> Response:
-    response = requests.get(url, timeout=15)
-    response.raise_for_status()
-    return Response(
-        content=response.content, content_type=response.headers.get("Content-Type", "")
-    )
-
-
-def parse_witchculttranslation_page(url: str) -> str:
     logger.info("Make request to %s", url)
-    response = requests.get(url)
+    response = requests.get(url, timeout=15)
 
     if response.status_code == 404:
-        raise NotFound(message="Chapter does not exist")
+        raise NotFound("URL is invalid")
 
     if not response.ok:
         msg = f"Request to {url} failed with {response.status_code} status code"
         logger.error(msg)
         raise ApplicationException(msg)
 
-    return response.text
+    return Response(
+        content=response.content, content_type=response.headers.get("Content-Type", "")
+    )

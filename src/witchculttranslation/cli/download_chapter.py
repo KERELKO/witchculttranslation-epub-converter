@@ -3,6 +3,7 @@ from pathlib import Path
 
 import click
 
+from witchculttranslation.constants import AUTHORS, ROOT, TITLE
 from witchculttranslation.epub import EpubWriter, read_epub, write_epub
 from witchculttranslation.exceptions import ApplicationException, NotFound
 from witchculttranslation.interactors.download_chapter import (
@@ -10,12 +11,7 @@ from witchculttranslation.interactors.download_chapter import (
     DownloadChapterDTO,
 )
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
 logger = logging.getLogger(__name__)
-ROOT = Path(__file__).parent.parent.parent
 
 
 @click.command("download-rezero-chapter")
@@ -38,18 +34,15 @@ def download_rezero_chapter(
         raise click.BadOptionUsage("--url", msg)
     logger.info("Download chapter: url=%s, book_path=%s", url, book_path)
 
-    title = "Re:Zero − Starting Life in Another World: Web novel"
-
     if book_path:
         book = read_epub(book_path)
-        title = str(book.title) or title
         new_book: bool = False
     else:
-        book_path = output or ROOT / f"{title}.epub"
+        book_path = output or ROOT / f"{TITLE}.epub"
         new_book = True
         book = EpubWriter.create_book(
-            author="Tappei Nagatsuki and witchculttranslation team",
-            title=title,
+            author=AUTHORS,
+            title=TITLE,
         )
         write_epub(book_path, book)
 

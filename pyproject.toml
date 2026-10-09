@@ -11,6 +11,7 @@ dependencies = [
     "beautifulsoup4>=4.15.0",
     "click>=8.5.0",
     "ebooklib>=0.20",
+    "questionary>=2.1.1",
     "requests>=2.34.2",
 ]
 
@@ -21,9 +22,9 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "pre-commit>=4.6.2",
-    "types-beautifulsoup4>=4.12.0.20250516",
     "types-requests>=2.33.0.20261006",
 ]
 
 [project.scripts]
-download-rezero-chapter = "witchculttranslation.cli:download_rezero_chapter"
+download-rezero-chapter = "witchculttranslation.cli.download_chapter:download_rezero_chapter"
+download-rezero-arc = "witchculttranslation.cli.download_arc:download_rezero_arc"

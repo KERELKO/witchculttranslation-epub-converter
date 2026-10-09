@@ -2,16 +2,8 @@ from dataclasses import dataclass
 from logging import getLogger
 from pathlib import Path
 
-import bs4  # type: ignore[import-untyped]
-
-from witchculttranslation.content_extractor import (
-    download_and_replace_images,
-    extract_chapter,
-    get_image_links,
-    normalize_chapter_html,
-)
+from witchculttranslation.html_parsing import download_chapter
 from witchculttranslation.epub import EpubWriter, read_epub, write_epub
-from witchculttranslation.http_utils import parse_witchculttranslation_page
 from witchculttranslation.dto import Chapter
 
 
@@ -33,22 +25,7 @@ class DownloadChapter:
     def __call__(self, data: DownloadChapterDTO) -> Chapter:
         logger.info("Download chapter: url=%s, book_path=%s", data.url, data.book_path)
 
-        witchculttranslation_html_page = parse_witchculttranslation_page(data.url)
-
-        witchculttranslation_html_page_soup = bs4.BeautifulSoup(
-            witchculttranslation_html_page, self.html_parser
-        )
-        chapter = extract_chapter(witchculttranslation_html_page_soup)
-
-        chapter_html = bs4.BeautifulSoup(chapter.chapter_html, self.html_parser)
-
-        image_links = get_image_links(chapter_html)
-
-        normalize_chapter_html(chapter_html)
-        downloaded_images = download_and_replace_images(chapter_html, image_links)
-
-        chapter.chapter_html = str(chapter_html)
-        chapter.images = downloaded_images
+        chapter = download_chapter(data.url, self.html_parser)
 
         book = read_epub(data.book_path)
 

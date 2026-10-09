@@ -11,7 +11,7 @@ from witchculttranslation.http_utils import get_response
 logger = getLogger(__name__)
 
 
-def extract_chapter(html: bs4.BeautifulSoup | bs4.Tag) -> Chapter:
+def _extract_chapter(html: bs4.BeautifulSoup | bs4.Tag) -> Chapter:
     """Extracts `witchculttranslation` HTML page content and extracts content of a chapter"""
 
     article = html.find("article")
@@ -55,10 +55,11 @@ def extract_chapter(html: bs4.BeautifulSoup | bs4.Tag) -> Chapter:
         posted_info=posted_info,
         translated_by=translated_by,
         chapter_html=str(article),
+        url="",
     )
 
 
-def get_image_links(html: bs4.BeautifulSoup | bs4.Tag) -> list[str]:
+def _get_image_links(html: bs4.BeautifulSoup | bs4.Tag) -> list[str]:
     """
     Finds all image links in the soup, and returns their URLs
     """
@@ -79,7 +80,7 @@ WHITESPACE_CHARS = frozenset({" ", "\t", "\n", "\r", "\xa0", "\u3000"})
 DECORATIVE_ONLY_CHARS = frozenset({"△", "▼"})
 
 
-def download_and_replace_images(
+def _download_and_replace_images(
     html: bs4.BeautifulSoup | bs4.Tag,
     image_links: list[str],
 ) -> dict[str, bytes]:
@@ -92,7 +93,10 @@ def download_and_replace_images(
             logger.info("Download image by '%s'", image_url)
             response = get_response(image_url)
         except Exception as e:
-            logger.error("Failed to download image %s: %s", image_url, e)
+            logger.error(
+                "Failed to download image by URL '%s': message=%s", image_url, e
+            )
+            continue
 
         tags = html.find_all("img", attrs={"src": image_url})
         internal_filename = f"img_{uuid.uuid4().hex[:8]}{response.content_extension}"
@@ -116,7 +120,7 @@ def download_and_replace_images(
     return images
 
 
-def normalize_chapter_html(html: bs4.BeautifulSoup | bs4.Tag) -> None:
+def _normalize_chapter_html(html: bs4.BeautifulSoup | bs4.Tag) -> None:
     for paragraph in html.find_all("p"):
         paragraph = cast(bs4.Tag, paragraph)
 
@@ -141,3 +145,28 @@ def normalize_chapter_html(html: bs4.BeautifulSoup | bs4.Tag) -> None:
 
         if all(char in DECORATIVE_ONLY_CHARS for char in compact_text):
             paragraph.decompose()
+
+
+def download_chapter(url: str, html_parser: str) -> Chapter:
+    """Downloads chapter HTML from URL, processes and return instance of `Chapter`"""
+    logger.info("Download chapter: url=%s", url)
+
+    witchculttranslation_html_page = get_response(url).text
+
+    witchculttranslation_html_page_soup = bs4.BeautifulSoup(
+        witchculttranslation_html_page, html_parser
+    )
+    chapter = _extract_chapter(witchculttranslation_html_page_soup)
+    chapter.url = url
+
+    chapter_html = bs4.BeautifulSoup(chapter.chapter_html, html_parser)
+
+    image_links = _get_image_links(chapter_html)
+
+    _normalize_chapter_html(chapter_html)
+    downloaded_images = _download_and_replace_images(chapter_html, image_links)
+
+    chapter.chapter_html = str(chapter_html)
+    chapter.images = downloaded_images
+
+    return chapter
