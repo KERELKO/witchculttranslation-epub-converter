@@ -48,7 +48,7 @@ def download_rezero_arc(output: Path | None) -> None:
     result_path = download_arc(
         DownloadArcDTO(arc=selected_arc, result_path=result_path)
     )
-    logger.info("Su")
+    logger.info("Successfully downloaded rezero arc '%s'", selected_arc.name)
 
 
 if __name__ == "__main__":
